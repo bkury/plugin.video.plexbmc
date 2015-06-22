@@ -213,6 +213,10 @@ def addGUIItem(url, details, extraData, context=None, folder=True):
     except:
         printDebug.debug("Skipping fanart as None found")
 
+    if extraData.get('tvshow_image'):
+	liz.setProperty('tvshow_image', '%s' % extraData.get('tvshow_image', ''))
+	printDebug.debug("Setting TV Show Image as %s" % extraData.get('tvshow_image', ''))
+
     if extraData.get('banner'):
         liz.setProperty('banner', '%s' % extraData.get('banner', ''))
         printDebug.debug("Setting banner as %s" % extraData.get('banner', ''))
@@ -837,6 +841,7 @@ def TVEpisodes( url, tree=None ):
                    'source'       : 'tvepisodes',
                    'thumb'        : getThumb(episode, server) ,
                    'fanart_image' : getFanart(episode, server) ,
+                   'tvshow_image' : getTVimage(episode, server, seasonThumb=True) ,
                    'key'          : episode.get('key',''),
                    'ratingKey'    : str(episode.get('ratingKey',0)),
                    'duration'     : duration,
@@ -2385,6 +2390,32 @@ def getShelfThumb(data, server, seasonThumb=False, prefer_season=False, width=40
 
     return GENERIC_THUMBNAIL
 
+def getTVimage(data, server, seasonThumb=False, prefer_season=False, width=400, height=400):
+    '''
+        Simply take a URL or path and determine how to format for images
+        @ input: elementTree element, server name
+        @ return formatted URL
+    '''
+
+    if seasonThumb:
+        if prefer_season:
+            thumbnail=data.get('parentThumb',data.get('grandparentThumb','')).split('?t')[0].encode('utf-8')
+        else:
+            thumbnail=data.get('grandparentThumb','').split('?t')[0].encode('utf-8')
+    else:
+        thumbnail=data.get('thumb','').split('?t')[0].encode('utf-8')
+
+    if thumbnail.startswith("http"):
+        return thumbnail
+
+    elif thumbnail.startswith('/'):
+        if settings.get_setting('fullres_thumbs'):
+            return server.get_kodi_header_formatted_url(thumbnail)
+        else:
+            return server.get_kodi_header_formatted_url('/photo/:/transcode?url=%s&width=%s&height=%s' % (urllib.quote_plus('http://localhost:32400' + thumbnail), width, height))
+
+    return GENERIC_THUMBNAIL
+
 def getFanart(data, server, width=1280, height=720):
     '''
         Simply take a URL or path and determine how to format for fanart
@@ -2832,7 +2863,6 @@ def amberskin():
             else:
                 suffix='/all'
 
-                
             #Build that listing..
             WINDOW.setProperty("plexbmc.%d.uuid" % (sectionCount) , section.get_uuid())
             WINDOW.setProperty("plexbmc.%d.title"    % (sectionCount) , section.get_title())
@@ -2849,9 +2879,14 @@ def amberskin():
             WINDOW.setProperty("plexbmc.%d.viewed" % (sectionCount) , "ActivateWindow(%s,%s%s%s&mode=%s,return)" % (window, base_url, path, "/recentlyViewed", mode) )
             WINDOW.setProperty("plexbmc.%d.ondeck" % (sectionCount) , "ActivateWindow(%s,%s%s%s&mode=%s,return)" % (window, base_url, path, "/onDeck", mode) )
             WINDOW.setProperty("plexbmc.%d.released" % (sectionCount) , "ActivateWindow(%s,%s%s%s&mode=%s,return)" % (window, base_url, path, "/newest", mode) )
-            WINDOW.setProperty("plexbmc.%d.shared"     % (sectionCount) , "false")
-            WINDOW.setProperty("plexbmc.%d.ondeck.content" % (sectionCount) , "%s%s%s&mode=%s" % (base_url, path, "/onDeck", mode) )
-            WINDOW.setProperty("plexbmc.%d.recent.content" % (sectionCount) , "%s%s%s&mode=%s" % (base_url, path, "/recentlyAdded", mode) )
+            WINDOW.setProperty("plexbmc.%d.ondeck.content" % (sectionCount) , "%s%s%s&mode=%s&limit=%s" % (base_url, path, "/onDeck", mode, settings.get_setting('shelflimit') ))
+            WINDOW.setProperty("plexbmc.%d.recent.content" % (sectionCount) , "%s%s%s&mode=%s&limit=%s" % (base_url, path, "/recentlyAdded", mode, settings.get_setting('shelflimit') ))
+
+	    #Set shared flag
+            if not server.is_owned():
+               WINDOW.setProperty("plexbmc.%d.shared"     % (sectionCount) , "true")
+            else:
+               WINDOW.setProperty("plexbmc.%d.shared"     % (sectionCount) , "false")
 
             printDebug.debug("Building window properties index [%s] which is [%s]" % (sectionCount, section.get_title()))
             printDebug.debug("PATH in use is: ActivateWindow(%s,%s%s&mode=%s,return)" % ( window, base_url, path, mode))
@@ -2862,7 +2897,7 @@ def amberskin():
         WINDOW.setProperty("plexbmc.%d.subtitle" % (sectionCount) , "Shared")
         WINDOW.setProperty("plexbmc.%d.path"     % (sectionCount) , "ActivateWindow(VideoLibrary,plugin://plugin.video.plexbmc/?url=/&mode=%s,return)" % MODE_SHARED_ALL)
         WINDOW.setProperty("plexbmc.%d.type"     % (sectionCount) , "shared")
-        WINDOW.setProperty("plexbmc.%d.shared"   % (sectionCount) , "true")
+        WINDOW.setProperty("plexbmc.%d.shared"   % (sectionCount) , "false")
         sectionCount += 1
 
     elif sharedCount != 0:
@@ -4025,6 +4060,7 @@ def start_plexbmc():
     play_transcode=True if int(params.get('transcode',0)) == 1 else False
     param_identifier=params.get('identifier')
     param_indirect=params.get('indirect')
+    param_limit=int(params.get('limit',-1))
     force=params.get('force')
 
     if command is None:
@@ -4184,8 +4220,14 @@ def start_plexbmc():
             WINDOW.clearProperty("heading")
             WINDOW.clearProperty("heading2")
 
+	    #Limit Dynamic Shelf Items
+	    if ( param_limit > 0 ):
+	       param_url="%s?X-Plex-Container-Start=0&X-Plex-Container-Size=%s" % (param_url, param_limit)
+
+	    #Debug
             if settings.get_debug() >= printDebug.DEBUG_INFO:
                 print "PleXBMC -> Mode: %s " % mode
+                print "PleXBMC -> Limit: %s" % param_limit
                 print "PleXBMC -> URL: %s" % param_url
                 print "PleXBMC -> Name: %s" % param_name
                 print "PleXBMC -> identifier: %s" % param_identifier

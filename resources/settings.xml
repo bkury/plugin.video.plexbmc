@@ -45,7 +45,7 @@
     <setting id="channelview" type="bool" label="30042" default="false"/>
     <setting id="flatten" type="enum" label="30043" lvalues="30053|30058|30059" default="0"/>
     <setting id="disable_all_season" type="bool" label="30103" default="false"/>
-    <setting id="hide_shared" type="bool" label="30092" default="true"/>
+    <setting id="hide_shared" type="bool" label="30092" default="false"/>
     <setting id="skinoverride" type="bool" label="30075" default="false" />
     <setting id="skinname" type="enum" label="30076" values="Quartz|Quartz V3|Confluence|Amber|Aeon Nox 5" default="Confluence"  visible="eq(-1,true)" enable="eq(-1,true)" subsetting="true" />
     <!--Quartz Skin-->
@@ -80,6 +80,7 @@
     <setting id="mu_view_4" type="labelenum" label="30081" values="None|List|InfoWall|Landscape|ShowCase1|ShowCase2|TriPanel|Posters|Shift|BannerWall|Logo|Wall|LowList|Episode|Wall|BigList" default="None" subsetting="true"  visible="eq(-26,true)+eq(-25,4)" enable="eq(-26,true)+eq(-25,4)"/>
   </category>
   <category label="30021" > <!-- Shelf -->
+    <setting id="shelflimit" label="30072" type="slider" option="int" range="1,100" default="10" />
     <setting id="homeshelf" type="enum" label="30072" lvalues="30073|30074|30009|30053" default="2" />
 	<setting id="hide_watched_recent_items" type="bool" label="30097" visible="eq(-1,0) | eq(-1,2)" default="false" />
 	<setting id="prefer_season_thumbs" type="bool" label="30106" visible="eq(-2,0) | eq(-2,2)" default="false" />
