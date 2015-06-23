@@ -592,10 +592,21 @@ def TVShows( url, tree=None ):
     for show in ShowTags:
 
         tempgenre=[]
+        tempcast=[]
+        tempdir=[]
+        tempwriter=[]
 
         for child in show:
-            if child.tag == "Genre":
-                        tempgenre.append(child.get('tag',''))
+            if child.tag == "Media":
+                mediaarguments = dict(child.items())
+            elif child.tag == "Genre" and not settings.get_setting('skipmetadata'):
+                tempgenre.append(child.get('tag'))
+            elif child.tag == "Writer"  and not settings.get_setting('skipmetadata'):
+                tempwriter.append(child.get('tag'))
+            elif child.tag == "Director"  and not settings.get_setting('skipmetadata'):
+                tempdir.append(child.get('tag'))
+            elif child.tag == "Role"  and not settings.get_setting('skipmetadata'):
+                tempcast.append(child.get('tag'))
 
         watched = int(show.get('viewedLeafCount',0))
 
@@ -609,7 +620,10 @@ def TVShows( url, tree=None ):
                  'episode'    : int(show.get('leafCount',0)) ,
                  'mpaa'       : show.get('contentRating','') ,
                  'aired'      : show.get('originallyAvailableAt','') ,
-                 'genre'      : " / ".join(tempgenre) }
+                 'premiered'  : show.get('originallyAvailableAt','') ,
+                 'year'       : int(show.get('year',0)) ,
+                 'duration'   : int(show.get('duration',0))/1000/60 ,
+                 'rating'     : float(show.get('rating',0)) }
 
         extraData={'type'              : 'video' ,
                    'source'            : 'tvshows',
@@ -634,6 +648,13 @@ def TVShows( url, tree=None ):
             details['playcount'] = 1
         else:
             extraData['partialTV'] = 1
+
+        #Extended Metadata
+        if not settings.get_setting('skipmetadata'):
+            details['cast']     = tempcast
+            details['director'] = " / ".join(tempdir)
+            details['writer']   = " / ".join(tempwriter)
+            details['genre']    = " / ".join(tempgenre)
 
         #Create URL based on whether we are going to flatten the season view
         if settings.get_setting('flatten') == "2":
