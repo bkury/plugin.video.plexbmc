@@ -404,7 +404,8 @@ def enforceSkinView(mode):
                  '0' : 'skin.quartz' ,
                  '1' : 'skin.quartz3' ,
                  '3' : 'skin.amber',
-                 '4' : 'skin.aeon.nox.5' }
+                 '4' : 'skin.aeon.nox.5' ,
+                 '5' : 'skin.night' }
 
     if skin_map[skinname] not in current_skin_name:
         printDebug.debug("Do not have the correct skin [%s] selected in settings [%s] - ignoring" % (current_skin_name, skin_map[skinname]))
@@ -495,11 +496,28 @@ def enforceSkinView(mode):
                        'Wall'       : 503 ,
                        'BigList'    : 510 }
 
+    Night_views = {    'List #1' : 100,
+                       'List #2' : 110,
+                       'List #3' : 120,
+                       'Poster #1' : 200,
+                       'Poster #2' : 210,
+                       'Poster #3' : 220,
+                       'Panel #1' : 300,
+                       'Panel #2' : 310,
+                       'Panel #3' : 320,
+                       'Banner #1' : 400,
+                       'Banner #2' : 410,
+                       'Banner #3' : 420,
+                       'Custom #1' : 500,
+                       'Custom #2' : 510,
+                       'Custom #3' : 520 }
+
     skin_list={"0" : Quartz_views ,
                "1" : QuartzV3_views,
                "2" : Confluence_views,
                "3" : Amber_views,
-               "4" : aeon_nox_views }
+               "4" : aeon_nox_views,
+               "5" : Night_views }
 
     printDebug.debug("Using skin view: %s" % skin_list[skinname][viewname])
 
